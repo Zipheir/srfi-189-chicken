@@ -19,51 +19,51 @@
 ;; TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 ;; SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-(import (scheme base))
-(import (scheme write))
-(import (srfi 189))
+(import (scheme)
+        (chicken base)
+        (srfi 189)
+        (only (r7rs) guard eof-object raise raise-continuable
+                     with-exception-handler error-object?))
 
-(cond-expand
-  ((library (srfi 78))
-   (import (srfi 78)))
-  (else
-    (begin
-      (define-syntax check
-        (syntax-rules (=>)
-          ((check expr)
-           (check expr => #t))
-          ((check expr => expected)
-           (if (equal? expr expected)
-             (begin
-               (display 'expr)
-               (display " => ")
-               (display expected)
-               (display " ; correct")
-               (newline))
-             (begin
-               (display "FAILED: for ")
-               (display 'expr)
-               (display " expected ")
-               (display expected)
-               (display " but got ")
-               (display expr)
-               (newline))
-             ))))
-      (define (check-report) #t))))
+(define *tests-failed* 0)
+
+(define-syntax check
+  (syntax-rules (=>)
+    ((check expr)
+     (check expr => #t))
+    ((check expr => expected)
+     (if (equal? expr expected)
+       (begin
+         (display 'expr)
+         (display " => ")
+         (display expected)
+         (display " ; correct")
+         (newline))
+       (begin
+         (set! *tests-failed* (+ *tests-failed* 1))
+         (display "FAILED: for ")
+         (display 'expr)
+         (display " expected ")
+         (display expected)
+         (display " but got ")
+         (display expr)
+         (newline))))))
+
+(define (check-report)
+  (cond ((zero? *tests-failed*)
+         (display "All tests passed.\n")
+         (exit 0))
+        (else
+         (error "TESTS FAILED" *tests-failed*)
+         (exit 1))))
 
 ;;;; Utility
-
-(define (identity x) x)
 
 (define (print-header message)
   (newline)
   (display ";;; ")
   (display message)
   (newline))
-
-(define-syntax constantly
-  (syntax-rules ()
-    ((_ obj) (lambda _ obj))))
 
 ;; Gives the values of expr as a list.
 (define-syntax values->list
@@ -505,7 +505,7 @@
                                       'z))
    => #t))
 
-(load "test-syntax.scm")
+(include "test-syntax.scm")
 
 ;;;; Trivalent logic
 
