@@ -1,0 +1,10 @@
+((synopsis "SRFI 189: Maybe and Either")
+ (category data)
+ (author "John Cowan and Wolfgang Corcoran-Mathe")
+ (license "MIT")
+ (version "0.1")
+ (maintainer "Wolfgang Corcoran-Mathe")
+ (dependencies r7rs srfi-1 srfi-145)
+ (test-dependencies r7rs)
+ (components
+  (extension srfi-189)))
