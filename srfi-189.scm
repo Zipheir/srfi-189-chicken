@@ -39,8 +39,59 @@
 
   (import (scheme)
           (chicken base)
+          (chicken condition)
           (chicken syntax)
-          (only (srfi 1) list-copy find every list=)
-          (srfi 145))
+          (only (srfi 1) list-copy find every list=))
+
+  (define (make-type-condition loc msg . args)
+    (make-composite-condition
+     (make-property-condition 'exn
+      'location loc
+      'message msg
+      'arguments args)
+     (make-property-condition 'type)
+     (make-property-condition 'assertion)))
+
+  (define (make-arity-condition loc msg . args)
+    (make-composite-condition
+     (make-property-condition 'exn
+      'location loc
+      'message msg
+      'arguments args)
+     (make-property-condition 'arity)
+     (make-property-condition 'assertion)))
+
+  (define-syntax assert-type
+    (syntax-rules ()
+      ((assert-type loc expr . args)
+       (unless expr
+         (abort
+          (make-type-condition loc
+                               "type check failed"
+                               'expr
+                               . args))))))
+
+  ;; Called by a variadic procedure when it is passed the wrong
+  ;; number of arguments.
+  (define (arity-exception loc . args)
+    (abort
+     (make-composite-condition
+      (make-property-condition 'exn
+       'location loc
+       'message "invalid number of arguments"
+       'arguments args)
+      (make-property-condition 'arity)
+      (make-property-condition 'assertion))))
+
+  ;; Called by procedures like maybe-join which take a Maybe/Either
+  ;; with a specific number or kind of payload values.
+  (define (payload-exception loc msg . args)
+    (abort
+     (make-composite-condition 'exn
+      'location loc
+      'message msg
+      'arguments args)
+     (make-composite-condition 'type)
+     (make-composite-condition 'payload)))
 
   (include "189.scm"))

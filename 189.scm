@@ -82,31 +82,31 @@
 ;;; list argument doesn't affect the payloads of any Maybes/Eithers.
 
 (define (list->just lis)
-  (assume (or (null? lis) (pair? lis)))
+  (assert-type 'list->just (or (null? lis) (pair? lis)))
   (raw-just (list-copy lis)))
 
 (define (list->right lis)
-  (assume (or (null? lis) (pair? lis)))
+  (assert-type 'list->right (or (null? lis) (pair? lis)))
   (raw-right (list-copy lis)))
 
 (define (list->left lis)
-  (assume (or (null? lis) (pair? lis)))
+  (assert-type 'list->left (or (null? lis) (pair? lis)))
   (raw-left (list-copy lis)))
 
 (define (maybe->either maybe . default-objs)
-  (assume (maybe? maybe))
+  (assert-type 'maybe->either (maybe? maybe))
   (if (nothing? maybe)
       (raw-left default-objs)
       (raw-right (just-objs maybe))))
 
 (define (either->maybe either)
-  (assume (either? either))
+  (assert-type 'either->maybe (either? either))
   (if (left? either)
       nothing-obj
       (raw-just (right-objs either))))
 
 (define (either-swap either)
-  (assume (either? either))
+  (assert-type 'either-swap (either? either))
   (if (right? either)
       (raw-left (right-objs either))
       (raw-right (left-objs either))))
@@ -123,8 +123,8 @@
 ;; the same number of values which are element-wise equal in the sense
 ;; of `equal'.
 (define (maybe= equal . maybes)
-  (assume (procedure? equal))
-  (assume (pair? maybes))
+  (assert-type 'maybe= (procedure? equal))
+  (assert-arity 'maybe= (pair? maybes))
   (let ((maybe1 (car maybes)))
     (every (lambda (maybe2) (%maybe=2 equal maybe1 maybe2))
            (cdr maybes))))
@@ -142,8 +142,8 @@
 ;; True if the eithers are all Lefts/all Rights containing the same
 ;; number of values which are element-wise equal in the sense of `equal'.
 (define (either= equal . eithers)
-  (assume (procedure? equal))
-  (assume (pair? eithers))
+  (assert-type 'either= (procedure? equal))
+  (assert-arity 'either= (pair? eithers))
   (let ((either1 (car eithers)))
     (every (lambda (either2) (%either=2 equal either1 either2))
            (cdr eithers))))
@@ -161,8 +161,8 @@
 ;; continuation (default: values) on its payload; otherwise,
 ;; call failure.
 (define (maybe-ref maybe failure . %opt-args)
-  (assume (maybe? maybe))
-  (assume (procedure? failure))
+  (assert-type 'maybe-ref (maybe? maybe))
+  (assert-type 'maybe-ref (procedure? failure))
   (if (just? maybe)
       (let ((objs (just-objs maybe))
             (success (if (pair? %opt-args) (car %opt-args) values)))
@@ -171,7 +171,7 @@
 
 ;; Unwrap a Maybe.  If it's a Nothing, return the default objects.
 (define (maybe-ref/default maybe . default-objs)
-  (assume (maybe? maybe))
+  (assert-type 'maybe-ref/default (maybe? maybe))
   (if (just? maybe)
       (let ((objs (just-objs maybe)))
         (fast-list->values objs))
@@ -184,8 +184,8 @@
 ;; Unwrap an Either, calling failure on the payload of a Left and the
 ;; optional success continuation (default: values) on that of a Right.
 (define (either-ref either failure . %opt-args)
-  (assume (either? either))
-  (assume (procedure? failure))
+  (assert-type 'either-ref (either? either))
+  (assert-type 'either-ref (procedure? failure))
   (if (right? either)
       (%either-ref-single either right-objs (if (pair? %opt-args)
                                                 (car %opt-args)
@@ -194,7 +194,7 @@
 
 ;; Unwrap an Either.  If it's a Left, return the default objects.
 (define (either-ref/default either . default-objs)
-  (assume (either? either))
+  (assert-type 'either-ref/default (either? either))
   (if (right? either)
       (let ((objs (right-objs either)))
         (fast-list->values objs))
@@ -204,19 +204,22 @@
 
 ;; If maybe is a Just containing a single Maybe, return that Maybe.
 (define (maybe-join maybe)
-  (assume (maybe? maybe))
+  (assert-type 'maybe-join (maybe? maybe))
   (if (nothing? maybe)
       nothing-obj
       (let ((objs (just-objs maybe)))
-        (assume (and (singleton? objs) (maybe? (car objs)))
-                "maybe-join: invalid payload")
+        (unless (and (singleton? objs) (maybe? (car objs)))
+          (payload-exception
+           'maybe-join
+           "invalid payload: not a single Maybe value"
+           objs))
         (car objs))))
 
 ;; Call the first mproc on the payload of a Maybe, producing a Maybe.
 ;; Repeat the operation with this Maybe and the remaining mprocs.
 ;; Return a Nothing immediately.
 (define (maybe-bind maybe mproc . mprocs)
-  (assume (maybe? maybe))
+  (assert-type 'maybe-bind (maybe? maybe))
   (if (null? mprocs)
       (maybe-ref maybe nothing mproc)  ; fast path
       (let lp ((m maybe) (mp mproc) (mprocs mprocs))
@@ -231,7 +234,7 @@
 
 ;; Compose the argument mprocs and return the resulting monadic procedure.
 (define (maybe-compose . mprocs)
-  (assume (pair? mprocs))
+  (assert-arity 'maybe-compose (pair? mprocs))
   (lambda args
     (let lp ((args args) (mproc (car mprocs)) (rest (cdr mprocs)))
       (if (null? rest)
@@ -243,19 +246,22 @@
 
 ;; If either is a Right containing a single Either, return that Either.
 (define (either-join either)
-  (assume (either? either))
+  (assert-type 'either-join (either? either))
   (if (left? either)
       either
       (let ((objs (right-objs either)))
-        (assume (and (singleton? objs) (either? (car objs)))
-                "either-join: invalid payload")
+        (unless (and (singleton? objs) (either? (car objs)))
+          (payload-exception
+           'either-join
+           "invalid payload: not a single Either value"
+           objs))
         (car objs))))
 
 ;; Call the first mproc on the payload of a Either, producing a Either.
 ;; Repeat the operation with this Either and the remaining mprocs.
 ;; Return a Left immediately.
 (define (either-bind either mproc . mprocs)
-  (assume (either? either))
+  (assert-type 'either-bind (either? either))
   (if (null? mprocs)
       (either-ref either (const either) mproc)  ; fast path
       (let lp ((e either) (mp mproc) (mprocs mprocs))
@@ -270,7 +276,7 @@
 
 ;; Compose the argument mprocs and return the resulting monadic procedure.
 (define (either-compose . mprocs)
-  (assume (pair? mprocs))
+  (assert-arity 'either-compose (pair? mprocs))
   (lambda args
     (let lp ((args args) (mproc (car mprocs)) (rest (cdr mprocs)))
       (if (null? rest)
@@ -283,13 +289,13 @@
 ;;;; Sequence operations
 
 (define (maybe-length maybe)
-  (assume (maybe? maybe))
+  (assert-type 'maybe-length (maybe? maybe))
   (if (just? maybe) 1 0))
 
 ;; Return maybe if its payload satisfies pred; otherwise, return Nothing.
 (define (maybe-filter pred maybe)
-  (assume (procedure? pred))
-  (assume (maybe? maybe))
+  (assert-type 'maybe-filter (procedure? pred))
+  (assert-type 'maybe-filter (maybe? maybe))
   (if (and (just? maybe) (fast-apply pred (just-objs maybe)))
       maybe
       nothing-obj))
@@ -297,8 +303,8 @@
 ;; Return maybe if its payload doesn't satisfy pred; otherwise, return
 ;; Nothing.
 (define (maybe-remove pred maybe)
-  (assume (procedure? pred))
-  (assume (maybe? maybe))
+  (assert-type 'maybe-remove (procedure? pred))
+  (assert-type 'maybe-remove (maybe? maybe))
   (if (and (just? maybe)
            (not (fast-apply pred (just-objs maybe))))
       maybe
@@ -312,8 +318,8 @@
   (case-lambda
    ((container cmap) (maybe-sequence container cmap list))
    ((container cmap aggregator)
-    (assume (procedure? cmap))
-    (assume (procedure? aggregator))
+    (assert-type 'maybe-sequence (procedure? cmap))
+    (assert-type 'maybe-sequence (procedure? aggregator))
     (call-with-current-continuation
      (lambda (return)
        (just (cmap (lambda (m)
@@ -321,21 +327,21 @@
                    container)))))))
 
 (define (either-length either)
-  (assume (either? either))
+  (assert-type 'either-length (either? either))
   (if (right? either) 1 0))
 
 ;; Return either if its payload satisfies pred; otherwise, return
 ;; a Left of the default objects.
 (define (either-filter pred either . default-objs)
-  (assume (procedure? pred))
-  (assume (either? either))
+  (assert-type 'either-filter (procedure? pred))
+  (assert-type 'either-filter (either? either))
   (if (and (right? either) (fast-apply pred (right-objs either)))
       either
       (raw-left default-objs)))
 
 (define (either-remove pred either . default-objs)
-  (assume (procedure? pred))
-  (assume (either? either))
+  (assert-type 'either-remove (procedure? pred))
+  (assert-type 'either-remove (either? either))
   (if (and (right? either)
            (not (fast-apply pred (right-objs either))))
       either
@@ -348,8 +354,8 @@
   (case-lambda
    ((container cmap) (either-sequence container cmap list))
    ((container cmap aggregator)
-    (assume (procedure? cmap))
-    (assume (procedure? aggregator))
+    (assert-type 'either-sequence (procedure? cmap))
+    (assert-type 'either-sequence (procedure? aggregator))
     (call-with-current-continuation
      (lambda (return)
        (right (cmap (lambda (e)
@@ -359,42 +365,46 @@
 ;;;; Protocol conversion
 
 (define (maybe->list maybe)
-  (assume (maybe? maybe))
+  (assert-type 'maybe->list (maybe? maybe))
   (if (nothing? maybe) '() (just-objs maybe)))
 
 (define (either->list either)
-  (assume (either? either))
+  (assert-type 'either->list (either? either))
   ((if (right? either) right-objs left-objs) either))
 
 (define (list->maybe lis)
-  (assume (or (null? lis) (pair? lis)))
+  (assert-type 'list->maybe (or (null? lis) (pair? lis)))
   (if (null? lis) nothing-obj (raw-just (list-copy lis))))
 
 (define (list->either lis . default-objs)
-  (assume (or (null? lis) (pair? lis)))
+  (assert-type 'list->either (or (null? lis) (pair? lis)))
   (if (null? lis)
       (raw-left default-objs)
       (raw-right (list-copy lis))))
 
 ;; If maybe is a Just, return its payload; otherwise, return false.
 (define (maybe->truth maybe)
-  (assume (maybe? maybe))
+  (assert-type 'maybe->truth (maybe? maybe))
   (if (nothing? maybe)
       #f
-      (begin
-       (assume (singleton? (just-objs maybe))
-               "maybe->truth: invalid payload")
-       (car (just-objs maybe)))))
+      (let ((objs (just-objs maybe)))
+        (unless (singleton? objs)
+          (payload-exception 'maybe->truth
+                             "invalid payload: not a single value"
+                             objs))
+        (car objs))))
 
 ;; If either is a Right, return its payload; otherwise, return false.
 (define (either->truth either)
-  (assume (either? either))
+  (assert-type 'either->truth (either? either))
   (if (left? either)
       #f
-      (begin
-       (assume (singleton? (right-objs either))
-               "either->truth: invalid payload")
-       (car (right-objs either)))))
+      (let ((objs (right-objs either)))
+        (unless (singleton? objs)
+          (payload-exception 'either->truth
+                             "invalid payload: not a single value"
+                             objs))
+        (car objs))))
 
 (define (truth->maybe obj)
   (if obj (just obj) nothing-obj))
@@ -407,11 +417,11 @@
 ;;; list to represent success.
 
 (define (maybe->list-truth maybe)
-  (assume (maybe? maybe))
+  (assert-type 'maybe->list-truth (maybe? maybe))
   (if (just? maybe) (just-objs maybe) #f))
 
 (define (either->list-truth either)
-  (assume (either? either))
+  (assert-type 'either->list-truth (either? either))
   (if (right? either) (right-objs either) #f))
 
 ;; If list-or-false is #f, return Nothing.  If it's a list, return a
@@ -419,7 +429,8 @@
 (define (list-truth->maybe list-or-false)
   (if list-or-false
       (begin
-       (assume (or (null? list-or-false) (pair? list-or-false)))
+       (assert-type 'list-truth->maybe
+                    (or (null? list-or-false) (pair? list-or-false)))
        (raw-just (list-copy list-or-false)))
       nothing-obj))
 
@@ -428,7 +439,8 @@
 (define (list-truth->either list-or-false . default-objs)
   (if list-or-false
       (begin
-       (assume (or (null? list-or-false) (pair? list-or-false)))
+       (assert-type 'list-truth->either
+                    (or (null? list-or-false) (pair? list-or-false)))
        (raw-right (list-copy list-or-false)))
       (raw-left default-objs)))
 
@@ -439,24 +451,28 @@
 ;; If maybe is a Just whose payload is a single value, return that
 ;; value.  If it's a Nothing, return an eof-object.
 (define (maybe->generation maybe)
-  (assume (maybe? maybe))
+  (assert-type 'maybe->generation (maybe? maybe))
   (if (nothing? maybe)
       (eof-object)
-      (begin
-       (assume (singleton? (just-objs maybe))
-               "maybe->generation: invalid payload")
-       (car (just-objs maybe)))))
+      (let ((objs (just-objs maybe)))
+        (unless (singleton? objs)
+          (payload-exception 'maybe->generation
+                             "invalid payload: must be a single value"
+                             objs))
+        (car objs))))
 
 ;; If either is a Right whose payload is a single value, return that
 ;; value.  If it's a Left, return an eof-object.
 (define (either->generation either)
-  (assume (either? either))
+  (assert-type 'either->generation (either? either))
   (if (left? either)
       (eof-object)
-      (begin
-       (assume (singleton? (right-objs either))
-               "either->generation: invalid payload")
-       (car (right-objs either)))))
+      (let ((objs (right-objs either)))
+        (unless (singleton? objs)
+          (payload-exception 'either->generation
+                             "invalid payload: must be a single value"
+                             objs))
+        (car objs))))
 
 (define (generation->maybe obj)
   (if (eof-object? obj) nothing-obj (just obj)))
@@ -469,10 +485,11 @@
 ;;; success and zero values to represent failure.
 
 (define (maybe->values maybe)
+  (assert-type 'maybe->values (maybe? maybe))
   (maybe-ref maybe values values))
 
 (define (values->maybe producer)
-  (assume (procedure? producer))
+  (assert-type 'values->maybe (procedure? producer))
   (call-with-values
    producer
    (lambda objs
@@ -485,34 +502,35 @@
 ;; If maybe is Just containing a single value, return that value and #t.
 ;; If it's a Nothing, return |#f, #f|.
 (define (maybe->two-values maybe)
-  (assume (maybe? maybe))
+  (assert-type 'maybe->two-values (maybe? maybe))
   (if (nothing? maybe)
       (values #f #f)
       (begin
-       (assume (singleton? (just-objs maybe))
+       (assert-type 'maybe->two-values (singleton? (just-objs maybe))
                "maybe->two-values: invalid payload")
        (values (car (just-objs maybe)) #t))))
 
 (define (two-values->maybe producer)
-  (assume (procedure? producer))
+  (assert-type 'two-values->maybe (procedure? producer))
   (call-with-values
    producer
    (lambda (obj success)
      (if success (just obj) nothing-obj))))
 
 (define (either->values either)
+  (assert-type 'either->value (either? either))
   (either-ref/default either))
 
 (define (values->either producer . default-objs)
-  (assume (procedure? producer))
+  (assert-type 'values->either (procedure? producer))
   (call-with-values
    producer
    (lambda objs
      (if (null? objs) (raw-left default-objs) (raw-right objs)))))
 
 (define (exception->either pred thunk)
-  (assume (procedure? pred))
-  (assume (procedure? thunk))
+  (assert-type 'exception->either (procedure? pred))
+  (assert-type 'exception->either (procedure? thunk))
   (guard (obj ((pred obj) (left obj)))
     (call-with-values thunk right)))
 
@@ -521,23 +539,23 @@
 ;; If maybe is a Just, apply proc to its payload and wrap the result
 ;; in a Just.  Otherwise, return Nothing.
 (define (maybe-map proc maybe)
-  (assume (procedure? proc))
-  (assume (maybe? maybe))
+  (assert-type 'maybe-map (procedure? proc))
+  (assert-type 'maybe-map (maybe? maybe))
   (if (nothing? maybe)
       nothing-obj
       (call-with-values (lambda () (fast-apply proc (just-objs maybe)))
                         just)))
 
 (define (maybe-for-each proc maybe)
-  (assume (procedure? proc))
+  (assert-type 'maybe-for-each (procedure? proc))
   (maybe-ref maybe (const #f) proc)
   unspecified)
 
 ;; If maybe is a Just, apply kons to its payload values and nil.
 ;; Otherwise, return nil.
 (define (maybe-fold kons nil maybe)
-  (assume (procedure? kons))
-  (assume (maybe? maybe))
+  (assert-type 'maybe-fold (procedure? kons))
+  (assert-type 'maybe-fold (maybe? maybe))
   (if (nothing? maybe)
       nil
       (let ((objs (just-objs maybe)))
@@ -549,43 +567,43 @@
 ;; successor on seeds and apply stop? to the results; if stop? returns
 ;; true, apply mapper to seeds and return the results wrapped in a Just.
 (define (maybe-unfold stop? mapper successor . seeds)
-  (assume (procedure? stop?))
-  (assume (procedure? mapper))
+  (assert-type 'maybe-unfold (procedure? stop?))
+  (assert-type 'maybe-unfold (procedure? mapper))
   (if (singleton? seeds)
       (let ((seed (car seeds)))  ; fast path
         (if (stop? seed)
             nothing-obj
             (begin
              ;; successor might return multiple seeds.
-             (assume (call-with-values (lambda () (successor seed)) stop?))
+             (assert-type 'maybe-unfold (call-with-values (lambda () (successor seed)) stop?))
              (call-with-values (lambda () (mapper (car seeds))) just))))
       (if (apply stop? seeds)
           nothing-obj
           (begin
-           (assume (call-with-values (lambda () (apply successor seeds))
+           (assert-type 'maybe-unfold (call-with-values (lambda () (apply successor seeds))
                                      stop?))
            (call-with-values (lambda () (apply mapper seeds)) just)))))
 
 ;; If either is a Right, apply proc to its payload and wrap the result
 ;; in a Right.  Otherwise, return either.
 (define (either-map proc either)
-  (assume (procedure? proc))
-  (assume (either? either))
+  (assert-type 'either-map (procedure? proc))
+  (assert-type 'either-map (either? either))
   (if (left? either)
       either
       (call-with-values (lambda () (fast-apply proc (right-objs either)))
                         right)))
 
 (define (either-for-each proc either)
-  (assume (procedure? proc))
+  (assert-type 'either-for-each (procedure? proc))
   (either-ref either (const #f) proc)
   unspecified)
 
 ;; If either is a Right, apply kons to its payload values and nil.
 ;; Otherwise, return nil.
 (define (either-fold kons nil either)
-  (assume (procedure? kons))
-  (assume (either? either))
+  (assert-type 'either-fold (procedure? kons))
+  (assert-type 'either-fold (either? either))
   (if (left? either)
       nil
       (let ((objs (right-objs either)))
@@ -597,20 +615,20 @@
 ;; successor on seeds and apply stop? to the results; if stop? returns
 ;; true, apply mapper to seeds and return the results wrapped in a Right.
 (define (either-unfold stop? mapper successor . seeds)
-  (assume (procedure? stop?))
-  (assume (procedure? mapper))
+  (assert-type 'either-unfold (procedure? stop?))
+  (assert-type 'either-unfold (procedure? mapper))
   (if (singleton? seeds)
       (let ((seed (car seeds)))  ; fast path
         (if (stop? seed)
             (raw-left seeds)
             (begin
              ;; successor might return multiple values.
-             (assume (call-with-values (lambda () (successor seed)) stop?))
+             (assert-type 'either-unfold (call-with-values (lambda () (successor seed)) stop?))
              (call-with-values (lambda () (apply mapper seeds)) right))))
       (if (apply stop? seeds)
           (raw-left seeds)
           (begin
-           (assume (call-with-values (lambda () (apply successor seeds))
+           (assert-type 'either-unfold (call-with-values (lambda () (apply successor seeds))
                                      stop?))
            (call-with-values (lambda () (apply mapper seeds)) right)))))
 
@@ -818,7 +836,7 @@
   (let ((make-pred
          (lambda (b)
            (lambda (m)
-             (assume (maybe? m))
+             (assert-type 'tri=? (maybe? m))
              (and (just? m) (eqv? (just->boolean m) b))))))
     (if (nothing? maybe)
         (just #f)
@@ -829,7 +847,7 @@
 ;; Nothing, return the first such object.
 (define (tri-and . maybes)
   (or (find (lambda (m)
-              (assume (maybe? m))
+              (assert-type 'tri-and (maybe? m))
               (or (nothing? m) (not (just->boolean m))))
             maybes)
       (just #t)))
@@ -838,7 +856,7 @@
 ;; Nothing, return the first such object.
 (define (tri-or . maybes)
   (or (find (lambda (m)
-              (assume (maybe? m))
+              (assert-type 'tri-or (maybe? m))
               (or (nothing? m) (just->boolean m)))
             maybes)
       (just #f)))
