@@ -40,8 +40,11 @@
   (import (scheme)
           (chicken base)
           (chicken condition)
+          (chicken platform)
           (chicken syntax)
           (only (srfi 1) list-copy find every list=))
+
+  (register-feature! 'srfi-189)
 
   (define (make-type-condition loc msg . args)
     (make-composite-condition
