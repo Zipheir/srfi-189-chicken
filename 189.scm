@@ -915,7 +915,7 @@
 ;; Returns #t if all arguments are true or all false.  If any argument
 ;; is Nothing or if any two arguments have different (tri-)truth values,
 ;; #f is returned.
-(: tri=? (maybe-t #!rest maybe-t --> boolean))
+(: tri=? (maybe-t #!rest maybe-t --> maybe-t))
 (define (tri=? maybe . ms)
   (let ((make-pred
          (lambda (b)
