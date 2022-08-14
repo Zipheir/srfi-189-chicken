@@ -912,9 +912,6 @@
 (define (tri-not maybe)
   (maybe-bind maybe (lambda (x) (just (not x)))))
 
-;; Returns #t if all arguments are true or all false.  If any argument
-;; is Nothing or if any two arguments have different (tri-)truth values,
-;; #f is returned.
 (: tri=? (maybe-t #!rest maybe-t --> maybe-t))
 (define (tri=? maybe . ms)
   (let ((make-pred
@@ -927,9 +924,6 @@
         (let ((tri-same? (make-pred (just->boolean maybe))))
           (if (every tri-same? ms) (just #t) (just #f))))))
 
-;; Returns #t if all arguments are true.  If any argument is false or
-;; Nothing, return the first such object.
-(: tri-and (#!rest maybe-t --> maybe-t))
 (define (tri-and . maybes)
   (or (find (lambda (m)
               (assert-type 'tri-and (maybe? m))
@@ -937,9 +931,6 @@
             maybes)
       (just #t)))
 
-;; Returns #f if all arguments are false.  If any argument is true or
-;; Nothing, return the first such object.
-(: tri-or (#!rest maybe-t --> maybe-t))
 (define (tri-or . maybes)
   (or (find (lambda (m)
               (assert-type 'tri-or (maybe? m))
