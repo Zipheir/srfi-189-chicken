@@ -42,7 +42,9 @@
           (chicken condition)
           (chicken platform)
           (chicken syntax)
-          (only (srfi 1) list-copy find every list=))
+          (chicken type)
+          (only (srfi 1) list-copy find every list=)
+          typed-records)
 
   (register-feature! 'srfi-189)
 
