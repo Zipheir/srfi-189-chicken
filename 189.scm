@@ -145,7 +145,7 @@
 (: maybe= ((* * -> *) #!rest maybe-t -> boolean))
 (define (maybe= equal . maybes)
   (assert-type 'maybe= (procedure? equal))
-  (assert-arity 'maybe= (pair? maybes))
+  (unless (pair? maybes) (arity-exception 'maybe=))
   (let ((maybe1 (car maybes)))
     (every (lambda (maybe2) (%maybe=2 equal maybe1 maybe2))
            (cdr maybes))))
@@ -167,7 +167,7 @@
 (: either= ((* * -> *) #!rest either-t -> boolean))
 (define (either= equal . eithers)
   (assert-type 'either= (procedure? equal))
-  (assert-arity 'either= (pair? eithers))
+  (unless (pair? eithers) (arity-exception 'either=))
   (let ((either1 (car eithers)))
     (every (lambda (either2) (%either=2 equal either1 either2))
            (cdr eithers))))
@@ -271,7 +271,7 @@
 ;; Compose the argument mprocs and return the resulting monadic procedure.
 (: maybe-compose (mp-maybe #!rest mp-maybe -> mp-maybe))
 (define (maybe-compose . mprocs)
-  (assert-arity 'maybe-compose (pair? mprocs))
+  (unless (pair? mprocs) (arity-exception 'maybe-compose))
   (lambda args
     (let lp ((args args) (mproc (car mprocs)) (rest (cdr mprocs)))
       (if (null? rest)
@@ -316,7 +316,7 @@
 ;; Compose the argument mprocs and return the resulting monadic procedure.
 (: either-compose (mp-either #!rest mp-either -> mp-either))
 (define (either-compose . mprocs)
-  (assert-arity 'either-compose (pair? mprocs))
+  (unless (pair? mprocs) (arity-exception 'either-compose))
   (lambda args
     (let lp ((args args) (mproc (car mprocs)) (rest (cdr mprocs)))
       (if (null? rest)
