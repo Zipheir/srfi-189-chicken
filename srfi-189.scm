@@ -92,11 +92,12 @@
   ;; with a specific number or kind of payload values.
   (define (payload-exception loc msg . args)
     (abort
-     (make-composite-condition 'exn
-      'location loc
-      'message msg
-      'arguments args)
-     (make-composite-condition 'type)
-     (make-composite-condition 'payload)))
+     (make-composite-condition
+      (make-property-condition 'exn
+       'location loc
+       'message msg
+       'arguments args)
+      (make-property-condition 'type)
+      (make-property-condition 'payload))))
 
   (include "189.scm"))
