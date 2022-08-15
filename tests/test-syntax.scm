@@ -1,18 +1,17 @@
 ;;;; Conditional syntax
 
-(define-syntax raises-error-object
+(define-syntax is-type-violation
   (syntax-rules ()
     ((_ expr)
-     (guard (obj ((error-object? obj) #t)
-                  (else #f))
-       expr))))
+     (condition-case expr
+       ((exn type) #t)))))
 
 (define (check-syntax)
   (print-header "Testing syntax...")
 
   (check (maybe-if (just #t) #t #f) => #t)
   (check (maybe-if (nothing) #t #f) => #f)
-  (check (raises-error-object (maybe-if #t #t #f)) => #t)
+  (check (is-type-violation (maybe-if #t #t #f)) => #t)
 
   ;;; maybe-and, -or, -let*, and -let*-values
 
@@ -31,13 +30,13 @@
                  (maybe-and (nothing) (just #t))
                  (nothing))
    => #t)
-  (check (raises-error-object (maybe-and #t (just #t))) => #t)
+  (check (is-type-violation (maybe-and #t (just #t))) => #t)
 
   (check (nothing? (maybe-or))                               => #t)
   (check (just-of-z? (maybe-or (just 'z)))                   => #t)
   (check (just-of-z? (maybe-or (nothing) (just 'z)))         => #t)
   (check (nothing? (maybe-or (nothing) (nothing) (nothing))) => #t)
-  (check (raises-error-object (maybe-or (nothing) #t))       => #t)
+  (check (is-type-violation (maybe-or (nothing) #t))       => #t)
 
   (check (just-of-z?
           (maybe-let* (((maybe-bind (just #t) just)))
@@ -89,8 +88,8 @@
                    (maybe-let* ((b (nothing))) (not b))
                    (nothing))
      => #t))
-   (check (raises-error-object (maybe-let* ((b #t)) 'z)) => #t)
-   (check (raises-error-object
+   (check (is-type-violation (maybe-let* ((b #t)) 'z)) => #t)
+   (check (is-type-violation
            (maybe-let* ((b (just #t)) ('nothing)) #t))
     => #t)
 
@@ -163,8 +162,8 @@
                    (maybe-let*-values (((b c) (nothing))) (neg-both b c))
                    (nothing))
      => #t))
-   (check (raises-error-object (maybe-let*-values (((b) #t)) #t)) => #t)
-   (check (raises-error-object
+   (check (is-type-violation (maybe-let*-values (((b) #t)) #t)) => #t)
+   (check (is-type-violation
           (maybe-let*-values (((b) (just #t)) ('nothing)) #t))
     => #t)
 
@@ -185,13 +184,13 @@
                   (either-and (left #f) (right #t))
                   (left #f))
    => #t)
-  (check (raises-error-object (either-and #t (right #t))) => #t)
+  (check (is-type-violation (either-and #t (right #t))) => #t)
 
   (check (left? (either-or))                              => #t)
   (check (right-of-z? (either-or (right 'z)))             => #t)
   (check (right-of-z? (either-or (left) (right 'z)))      => #t)
   (check (left-of-z? (either-or (left) (left) (left 'z))) => #t)
-  (check (raises-error-object (either-or (left #f) #t))   => #t)
+  (check (is-type-violation (either-or (left #f) #t))   => #t)
 
   (check (right-of-z?
           (either-let* (((either-bind (right #t) right)))
@@ -245,8 +244,8 @@
                     (either-let* ((b (left #t))) (not b))
                     (left #t))
      => #t))
-   (check (raises-error-object (either-let* ((b #t)) 'z)) => #t)
-   (check (raises-error-object
+   (check (is-type-violation (either-let* ((b #t)) 'z)) => #t)
+   (check (is-type-violation
           (either-let* ((b (right #t)) ('left)) #t))
     => #t)
 
@@ -323,16 +322,19 @@
                       (neg-both b c))
                     (left #t #t))
      => #t))
-   (check (raises-error-object
+   (check (is-type-violation
           (either-let*-values (((b) #t)) 'z))
     => #t)
-   (check (raises-error-object
+   (check (is-type-violation
            (either-let*-values (((b) (right #t)) ('left)) 'z))
     => #t)
 
   (check (left-of-z? (either-guard symbol? (raise 'z))) => #t)
   (check (right-of-z? (either-guard symbol? 'z)) => #t)
-  (check (guard (obj ((symbol? obj) obj))
-           (either-guard number? (raise-continuable 'z)))
+  (check (handle-exceptions obj
+                            (if (symbol? obj)
+                                obj
+                                (signal obj))
+           (either-guard number? (signal 'z)))
    => 'z)
   )
