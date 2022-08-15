@@ -24,8 +24,7 @@
         (chicken condition)
         test
         (srfi 189)
-        (only (r7rs) guard eof-object raise raise-continuable
-                     with-exception-handler error-object?))
+        )
 
 ;; SRFI 78 shim
 
