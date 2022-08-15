@@ -21,41 +21,19 @@
 
 (import (scheme)
         (chicken base)
+        test
         (srfi 189)
         (only (r7rs) guard eof-object raise raise-continuable
                      with-exception-handler error-object?))
 
-(define *tests-failed* 0)
+;; SRFI 78 shim
 
 (define-syntax check
   (syntax-rules (=>)
     ((check expr)
      (check expr => #t))
     ((check expr => expected)
-     (if (equal? expr expected)
-       (begin
-         (display 'expr)
-         (display " => ")
-         (display expected)
-         (display " ; correct")
-         (newline))
-       (begin
-         (set! *tests-failed* (+ *tests-failed* 1))
-         (display "FAILED: for ")
-         (display 'expr)
-         (display " expected ")
-         (display expected)
-         (display " but got ")
-         (display expr)
-         (newline))))))
-
-(define (check-report)
-  (cond ((zero? *tests-failed*)
-         (display "All tests passed.\n")
-         (exit 0))
-        (else
-         (error "TESTS FAILED" *tests-failed*)
-         (exit 1))))
+     (test expected expr))))
 
 ;;;; Utility
 
@@ -556,7 +534,7 @@
   (check-map-fold-and-unfold)
   (check-syntax)
   (check-trivalent)
-
-  (check-report))
+  )
 
 (check-all)
+(test-exit)

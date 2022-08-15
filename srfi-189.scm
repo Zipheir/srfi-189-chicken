@@ -48,6 +48,15 @@
 
   (register-feature! 'srfi-189)
 
+  (define (assertion-violation loc msg . args)
+    (abort
+     (make-composite-condition
+      (make-property-condition 'exn
+       'location loc
+       'message msg
+       'arguments args)
+      (make-property-condition 'assertion))))
+
   (define (make-type-condition loc msg . args)
     (make-composite-condition
      (make-property-condition 'exn
