@@ -21,6 +21,7 @@
 
 (import (scheme)
         (chicken base)
+        (chicken condition)
         test
         (srfi 189)
         (only (r7rs) guard eof-object raise raise-continuable
@@ -396,12 +397,15 @@
                                       #f))
     => #t)
 
-  (check (left-of-z? (exception->either symbol? (lambda () (raise 'z))))
+  (check (left-of-z? (exception->either symbol? (lambda () (signal 'z))))
    => #t)
   (check (right-of-z? (exception->either symbol? (lambda () 'z))) => #t)
-  (check (guard (obj ((symbol? obj) obj))
+  (check (handle-exceptions obj
+                            (if (symbol? obj)
+                                obj
+                                (signal obj))
            (exception->either number?
-                              (lambda () (raise-continuable 'z))))
+                              (lambda () (signal 'z))))
    => 'z)
   )
 
