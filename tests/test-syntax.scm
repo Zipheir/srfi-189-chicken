@@ -335,10 +335,4 @@
   (check (guard (obj ((symbol? obj) obj))
            (either-guard number? (raise-continuable 'z)))
    => 'z)
-  (check (either= eqv?
-                  (with-exception-handler
-                   not
-                   (lambda ()
-                     (either-guard string? (not (raise-continuable #t)))))
-                  (right #t))
-   => #t))
+  )

@@ -403,15 +403,7 @@
            (exception->either number?
                               (lambda () (raise-continuable 'z))))
    => 'z)
-  (check (either= eqv?
-                  (with-exception-handler
-                   not
-                   (lambda ()
-                     (exception->either string?
-                                        (lambda ()
-                                          (not (raise-continuable #t))))))
-                  (right #t))
-   => #t))
+  )
 
 ;;;; Map, fold, and unfold
 
