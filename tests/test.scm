@@ -34,6 +34,9 @@
      (check expr => #t))
     ((check expr => expected)
      (test expected expr))))
+
+;; R7RS shim
+(define (eof-object) #!eof)
 
 ;;;; Utility
 
