@@ -634,6 +634,13 @@
 ;; true, apply mapper to seeds and return the results wrapped in a Just.
 (: maybe-unfold (procedure procedure procedure #!rest -> maybe-t))
 (define (maybe-unfold stop? mapper successor . seeds)
+  (define (assert-stop)
+    (let-values ((next-seeds (apply successor seeds)))
+      (unless (apply stop? next-seeds)
+        (assertion-violation 'maybe-unfold
+                             "stop? returned #f"
+                             next-seeds))))
+
   (assert-type 'maybe-unfold (procedure? stop?))
   (assert-type 'maybe-unfold (procedure? mapper))
   (if (singleton? seeds)
@@ -641,14 +648,12 @@
         (if (stop? seed)
             nothing-obj
             (begin
-             ;; successor might return multiple seeds.
-             (assert-type 'maybe-unfold (call-with-values (lambda () (successor seed)) stop?))
+             (assert-stop)
              (call-with-values (lambda () (mapper (car seeds))) just))))
       (if (apply stop? seeds)
           nothing-obj
           (begin
-           (assert-type 'maybe-unfold (call-with-values (lambda () (apply successor seeds))
-                                     stop?))
+           (assert-stop)
            (call-with-values (lambda () (apply mapper seeds)) just)))))
 
 ;; If either is a Right, apply proc to its payload and wrap the result
@@ -686,6 +691,13 @@
 ;; true, apply mapper to seeds and return the results wrapped in a Right.
 (: either-unfold (procedure procedure procedure #!rest -> either-t))
 (define (either-unfold stop? mapper successor . seeds)
+  (define (assert-stop)
+    (let-values ((next-seeds (apply successor seeds)))
+      (unless (apply stop? next-seeds)
+        (assertion-violation 'either-unfold
+                             "stop? returned #f"
+                             next-seeds))))
+
   (assert-type 'either-unfold (procedure? stop?))
   (assert-type 'either-unfold (procedure? mapper))
   (if (singleton? seeds)
@@ -693,14 +705,12 @@
         (if (stop? seed)
             (raw-left seeds)
             (begin
-             ;; successor might return multiple values.
-             (assert-type 'either-unfold (call-with-values (lambda () (successor seed)) stop?))
+             (assert-stop)
              (call-with-values (lambda () (apply mapper seeds)) right))))
       (if (apply stop? seeds)
           (raw-left seeds)
           (begin
-           (assert-type 'either-unfold (call-with-values (lambda () (apply successor seeds))
-                                     stop?))
+           (assert-stop)
            (call-with-values (lambda () (apply mapper seeds)) right)))))
 
 ;;;; Syntax
