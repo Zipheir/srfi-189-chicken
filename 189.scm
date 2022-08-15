@@ -61,16 +61,6 @@
 (define (singleton? lis)
   (and (pair? lis) (null? (cdr lis))))
 
-(define-syntax fast-apply
-  (syntax-rules ()
-    ((_ proc args)
-     (if (singleton? args) (proc (car args)) (apply proc args)))))
-
-(define-syntax fast-list->values
-  (syntax-rules ()
-    ((_ vals)
-     (if (singleton? vals) (car vals) (apply values vals)))))
-
 (define unspecified (if #f #f))
 
 ;;;; Constructors
@@ -193,7 +183,7 @@
   (if (just? maybe)
       (let ((objs (just-objs maybe))
             (success (if (pair? %opt-args) (car %opt-args) values)))
-        (fast-apply success objs))
+        (apply success objs))
       (failure)))
 
 ;; Unwrap a Maybe.  If it's a Nothing, return the default objects.
@@ -202,12 +192,12 @@
   (assert-type 'maybe-ref/default (maybe? maybe))
   (if (just? maybe)
       (let ((objs (just-objs maybe)))
-        (fast-list->values objs))
-      (fast-list->values default-objs)))
+        (apply values objs))
+      (apply values default-objs)))
 
 (define (%either-ref-single either accessor cont)
   (let ((objs (accessor either)))
-    (fast-apply cont objs)))
+    (apply cont objs)))
 
 ;; Unwrap an Either, calling failure on the payload of a Left and the
 ;; optional success continuation (default: values) on that of a Right.
@@ -228,8 +218,8 @@
   (assert-type 'either-ref/default (either? either))
   (if (right? either)
       (let ((objs (right-objs either)))
-        (fast-list->values objs))
-      (fast-list->values default-objs)))
+        (apply values objs))
+      (apply values default-objs)))
 
 ;;;; Join and bind
 
@@ -263,8 +253,8 @@
                    nothing
                    (lambda objs
                      (if (null? mprocs)
-                         (fast-apply mp objs) ; tail-call last
-                         (lp (fast-apply mp objs)
+                         (apply mp objs) ; tail-call last
+                         (lp (apply mp objs)
                              (car mprocs)
                              (cdr mprocs))))))))
 
@@ -275,8 +265,8 @@
   (lambda args
     (let lp ((args args) (mproc (car mprocs)) (rest (cdr mprocs)))
       (if (null? rest)
-          (fast-apply mproc args)             ; tail-call last
-          (maybe-ref (fast-apply mproc args)
+          (apply mproc args)             ; tail-call last
+          (maybe-ref (apply mproc args)
                      nothing
                      (lambda objs
                        (lp objs (car rest) (cdr rest))))))))
@@ -308,8 +298,8 @@
                     (const e)
                     (lambda objs
                       (if (null? mprocs)
-                          (fast-apply mp objs)  ; tail-call last
-                          (lp (fast-apply mp objs)
+                          (apply mp objs)  ; tail-call last
+                          (lp (apply mp objs)
                               (car mprocs)
                               (cdr mprocs))))))))
 
@@ -320,8 +310,8 @@
   (lambda args
     (let lp ((args args) (mproc (car mprocs)) (rest (cdr mprocs)))
       (if (null? rest)
-          (fast-apply mproc args)              ; tail-call last
-          (either-ref (fast-apply mproc args)
+          (apply mproc args)              ; tail-call last
+          (either-ref (apply mproc args)
                       left
                       (lambda objs
                         (lp objs (car rest) (cdr rest))))))))
@@ -338,7 +328,7 @@
 (define (maybe-filter pred maybe)
   (assert-type 'maybe-filter (procedure? pred))
   (assert-type 'maybe-filter (maybe? maybe))
-  (if (and (just? maybe) (fast-apply pred (just-objs maybe)))
+  (if (and (just? maybe) (apply pred (just-objs maybe)))
       maybe
       nothing-obj))
 
@@ -349,7 +339,7 @@
   (assert-type 'maybe-remove (procedure? pred))
   (assert-type 'maybe-remove (maybe? maybe))
   (if (and (just? maybe)
-           (not (fast-apply pred (just-objs maybe))))
+           (not (apply pred (just-objs maybe))))
       maybe
       nothing-obj))
 
@@ -382,7 +372,7 @@
 (define (either-filter pred either . default-objs)
   (assert-type 'either-filter (procedure? pred))
   (assert-type 'either-filter (either? either))
-  (if (and (right? either) (fast-apply pred (right-objs either)))
+  (if (and (right? either) (apply pred (right-objs either)))
       either
       (raw-left default-objs)))
 
@@ -391,7 +381,7 @@
   (assert-type 'either-remove (procedure? pred))
   (assert-type 'either-remove (either? either))
   (if (and (right? either)
-           (not (fast-apply pred (right-objs either))))
+           (not (apply pred (right-objs either))))
       either
       (raw-left default-objs)))
 
@@ -617,7 +607,7 @@
   (assert-type 'maybe-map (maybe? maybe))
   (if (nothing? maybe)
       nothing-obj
-      (call-with-values (lambda () (fast-apply proc (just-objs maybe)))
+      (call-with-values (lambda () (apply proc (just-objs maybe)))
                         just)))
 
 (: maybe-for-each (procedure maybe-t -> undefined))
@@ -669,7 +659,7 @@
   (assert-type 'either-map (either? either))
   (if (left? either)
       either
-      (call-with-values (lambda () (fast-apply proc (right-objs either)))
+      (call-with-values (lambda () (apply proc (right-objs either)))
                         right)))
 
 (: either-for-each (procedure either-t -> undefined))
