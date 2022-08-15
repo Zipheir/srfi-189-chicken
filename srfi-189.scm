@@ -35,8 +35,6 @@
    maybe-let*-values either-let*-values
    maybe-if)
 
-  (import (only (r7rs) guard eof-object))
-
   (import (scheme)
           (chicken base)
           (chicken condition)
@@ -47,6 +45,9 @@
           typed-records)
 
   (register-feature! 'srfi-189)
+
+  ;; R7RS shim
+  (define (eof-object) #!eof)
 
   (define (assertion-violation loc msg . args)
     (abort

@@ -594,7 +594,10 @@
 (define (exception->either pred thunk)
   (assert-type 'exception->either (procedure? pred))
   (assert-type 'exception->either (procedure? thunk))
-  (guard (obj ((pred obj) (left obj)))
+  (handle-exceptions obj
+                     (if (pred obj)
+                         (left obj)
+                         (signal obj))
     (call-with-values thunk right)))
 
 ;;;; Map, fold, and unfold
