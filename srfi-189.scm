@@ -26,14 +26,17 @@
 
    tri-not tri=? tri-and tri-or tri-merge
 
-   (syntax: maybe-and unspecified)
-   (syntax: maybe-or unspecified)
-   (syntax: maybe-let* singleton? just-objs nothing-obj)
-   (syntax: either-and unspecified)
-   either-or
-   (syntax: either-let* singleton? right-objs)
-   maybe-let*-values either-let*-values
-   maybe-if)
+   (syntax: maybe-and unspecified make-type-condition)
+   (syntax: maybe-or unspecified make-type-condition)
+   (syntax: maybe-let* singleton? just-objs nothing-obj
+                       make-type-condition)
+   (syntax: either-and unspecified make-type-condition)
+   (syntax: either-or make-type-condition)
+   (syntax: either-let* singleton? right-objs make-type-condition)
+   (syntax: maybe-let*-values make-type-condition)
+   (syntax: either-let*-values make-type-condition)
+   (syntax: maybe-if make-type-condition)
+   )
 
   (import (scheme)
           (chicken base)
