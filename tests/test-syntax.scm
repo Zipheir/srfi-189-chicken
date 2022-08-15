@@ -329,7 +329,7 @@
            (either-let*-values (((b) (right #t)) ('left)) 'z))
     => #t)
 
-  (check (left-of-z? (either-guard symbol? (raise 'z))) => #t)
+  (check (left-of-z? (either-guard symbol? (signal 'z))) => #t)
   (check (right-of-z? (either-guard symbol? 'z)) => #t)
   (check (handle-exceptions obj
                             (if (symbol? obj)
