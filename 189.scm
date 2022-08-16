@@ -564,10 +564,12 @@
   (assert-type 'maybe->two-values (maybe? maybe))
   (if (nothing? maybe)
       (values #f #f)
-      (begin
-       (assert-type 'maybe->two-values (singleton? (just-objs maybe))
-               "maybe->two-values: invalid payload")
-       (values (car (just-objs maybe)) #t))))
+      (let ((objs (just-objs maybe)))
+       (unless (singleton? objs)
+         (payload-exception 'maybe->two-values
+                            "payload is not a single value"
+                            objs))
+       (values (car objs) #t))))
 
 (: two-values->maybe (procedure -> maybe-t))
 (define (two-values->maybe producer)
