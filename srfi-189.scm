@@ -29,10 +29,10 @@
    (syntax: maybe-and unspecified make-type-condition)
    (syntax: maybe-or unspecified make-type-condition)
    (syntax: maybe-let* singleton? just-objs nothing-obj
-                       make-type-condition)
+                       make-type-condition payload-exception)
    (syntax: either-and unspecified make-type-condition)
    (syntax: either-or make-type-condition)
-   (syntax: either-let* singleton? right-objs make-type-condition)
+   (syntax: either-let* singleton? right-objs make-type-condition payload-exception)
    (syntax: maybe-let*-values make-type-condition)
    (syntax: either-let*-values make-type-condition)
    (syntax: maybe-if make-type-condition)
